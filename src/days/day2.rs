@@ -13,100 +13,160 @@ pub fn run(extra: bool, test: bool) -> String {
 }
 
 mod game {
-    use phf::phf_map;
+    use enum_iterator::{previous_cycle, next_cycle, Sequence};
 
-    static SCORES: phf::Map<&'static str, u8> = phf_map! {
-        "A" => 1,
-        "B" => 2,
-        "C" => 3,
-        "LOSS" => 0,
-        "DRAW" => 3,
-        "WIN" => 6
-    };
-
-    static CIRCLE: phf::Map<&'static str, &'static str> = phf_map! {
-        "A" => "C",
-        "B" => "A",
-        "C" => "B"
-    };
-
-    static WIN_CIRCLE: phf::Map<&'static str, &'static str> = phf_map! {
-        "A" => "B",
-        "B" => "C",
-        "C" => "A"
-    };
-
-    static PLAYER_TO_OP: phf::Map<&'static str, &'static str> = phf_map! {
-        "X" => "A",
-        "Y" => "B",
-        "Z" => "C"
-    };
-
-    static OUTCOMES: phf::Map<&'static str, &'static str> = phf_map! {
-        "X" => "LOSS",
-        "Y" => "DRAW",
-        "Z" => "WIN"
-    };
-
-    pub fn round(op: &str, me: &str) -> u8 {
-        let player_hand = *PLAYER_TO_OP.get(me).unwrap();
-        let hand_score = SCORES.get(player_hand).unwrap();
-
-        let game_score =
-            if op == player_hand {
-                SCORES.get("DRAW").unwrap()
-            } else if *CIRCLE.get(op).unwrap() == player_hand {
-                SCORES.get("LOSS").unwrap()
-            } else {
-                SCORES.get("WIN").unwrap()
-            };
-
-        game_score + hand_score
+    #[derive(PartialEq, Eq)]
+    pub enum Outcome {
+        Loss,
+        Draw,
+        Win
     }
 
-    pub fn inverse_round(op: &str, outcome: &str) -> u8 {
-        let outcome = *OUTCOMES.get(outcome).unwrap();
-        let game_score = SCORES.get(outcome).unwrap();
-
-        let hand =
-            if outcome == "DRAW" {
-                op
-            } else if outcome == "LOSS" {
-                CIRCLE.get(op).unwrap()
-            } else {
-                WIN_CIRCLE.get(op).unwrap()
-            };
-
-        let hand_score = SCORES.get(hand).unwrap();
-
-        game_score + hand_score
+    impl Outcome {
+        pub fn score(&self) -> u8 {
+            match self {
+                Self::Loss => 0,
+                Self::Draw => 3,
+                Self::Win => 6
+            }
+        }
     }
 
-    pub fn play(input: Vec<String>, f: fn(&str, &str) -> u8) -> u32 {
-        let mut acc: u32 = 0;
+    impl From<&str> for Outcome {
+        fn from(outcome: &str) -> Self {
+            match outcome {
+                "X" | "Loss" => Self::Loss,
+                "Y" | "Draw" => Self::Draw,
+                "Z" | "Win" => Self::Win,
+                _ => panic!("Unknown outcome {}", outcome)
+            }
+        }
+    }
 
-        for line in input {
-            let moves = line.split(' ').collect::<Vec<&str>>();
+    impl From<(&Hand, &Hand)> for Outcome {
+        fn from((hand1, hand2): (&Hand, &Hand)) -> Self {
+            if hand1 == hand2 {
+                Self::from("Draw")
+            } else if hand1.beats() == *hand2 {
+                Self::from("Loss")
+            } else {
+                Self::from("Win")
+            }
+        }
+    }
 
-            acc += f(moves[0], moves[1]) as u32;
+    #[derive(Sequence, PartialEq, Eq, Copy, Clone)]
+    pub enum Hand {
+        Rock,
+        Paper,
+        Scissors
+    }
+
+    impl Hand {
+        pub fn beats(&self) -> Self {
+            previous_cycle::<Self>(self).unwrap()
         }
 
-        acc
+        pub fn loses_to(&self) -> Self {
+            next_cycle::<Self>(self).unwrap()
+        }
+
+        pub fn draw(&self) -> Self {
+            *self
+        }
+
+        pub fn score(&self) -> u8 {
+            match self {
+                Self::Rock => 1,
+                Self::Paper => 2,
+                Self::Scissors => 3
+            }
+        }
+    }
+
+    impl From<&str> for Hand {
+        fn from(hand: &str) -> Self {
+            match hand {
+                "A" | "X" => Self::Rock,
+                "B" | "Y" => Self::Paper,
+                "C" | "Z" => Self::Scissors,
+                _ => panic!("Unknown move {}", hand)
+            }
+        }
     }
 }
 
 mod p1 {
-    use crate::day2::game;
+    use super::game;
 
     pub fn run(input: Vec<String>) -> u32 {
-        game::play(input, game::round)
+        let mut acc: u32 = 0;
+
+        for line in input {
+            let moves = line.split(' ').collect::<Vec<&str>>();
+            let op_hand = game::Hand::from(moves[0]);
+            let player_hand = game::Hand::from(moves[1]);
+
+            acc += play(&op_hand, &player_hand) as u32;
+        }
+
+        acc
+    }
+
+    fn play(op_hand: &game::Hand, player_hand: &game::Hand) -> u8 {
+        game::Outcome::from((op_hand, player_hand)).score() + player_hand.score()
     }
 }
 
 mod p2 {
-    use crate::day2::game;
+    use super::game;
 
     pub fn run(input: Vec<String>) -> u32 {
-        game::play(input, game::inverse_round)
+        let mut acc: u32 = 0;
+
+        for line in input {
+            let moves = line.split(' ').collect::<Vec<&str>>();
+            let op_hand = game::Hand::from(moves[0]);
+            let outcome = game::Outcome::from(moves[1]);
+
+            acc += play(&op_hand, &outcome) as u32;
+        }
+
+        acc
+    }
+
+    fn play(op: &game::Hand, outcome: &game::Outcome) -> u8 {
+        let hand = match outcome {
+            game::Outcome::Loss => op.beats(),
+            game::Outcome::Draw => op.draw(),
+            game::Outcome::Win => op.loses_to()
+        };
+
+        outcome.score() + hand.score()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::run;
+
+    #[test]
+    fn test_p1_test() {
+        assert_eq!(run(false, true), "15")
+    }
+
+    #[test]
+    fn test_p1_real() {
+        assert_eq!(run(false, false), "11063");
+    }
+
+    #[test]
+    fn test_p2_test() {
+        assert_eq!(run(true, true), "12")
+    }
+
+    #[test]
+    fn test_p2_real() {
+        assert_eq!(run(true, false), "10349")
     }
 }
