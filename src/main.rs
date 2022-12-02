@@ -43,6 +43,7 @@ fn main() {
     let problem = matches.value_of("problem_number").unwrap_or(&latest_str);
     let answer: String = match problem {
         "1" => day1::run(extra, test),
+        "2" => day2::run(extra, test),
         &_ => format!("Only know how to solve #{:?} for now :(", (1..=latest)),
     };
 
