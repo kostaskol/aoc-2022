@@ -56,3 +56,28 @@ mod p2 {
         sums[0..=2].iter().sum()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::run;
+
+    #[test]
+    pub fn test_p1_test() {
+        assert_eq!(run(false, true), "24000");
+    }
+
+    #[test]
+    pub fn test_p1_real() {
+        assert_eq!(run(false, false), "65912");
+    }
+
+    #[test]
+    pub fn test_p2_test() {
+        assert_eq!(run(true, true), "45000");
+    }
+
+    #[test]
+    pub fn test_p2_real() {
+        assert_eq!(run(true, false), "195625");
+    }
+}
