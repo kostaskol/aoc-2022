@@ -35,7 +35,7 @@ fn main() {
 
     let latest =
         if date.month() == 12 {
-            date.day()
+            vec![date.day(), 25].iter().min().unwrap().to_owned()
         } else {
             25
         };
@@ -44,6 +44,7 @@ fn main() {
     let answer: String = match problem {
         "1" => day1::run(extra, test),
         "2" => day2::run(extra, test),
+        "3" => day3::run(extra, test),
         &_ => format!("Only know how to solve #{:?} for now :(", (1..=latest)),
     };
 
