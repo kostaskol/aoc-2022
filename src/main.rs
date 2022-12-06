@@ -47,6 +47,7 @@ fn main() {
         "3" => day3::run(extra, test),
         "4" => day4::run(extra, test),
         "5" => day5::run(extra, test),
+        "6" => day6::run(extra, test),
         &_ => format!("Only know how to solve #{:?} for now :(", (1..=latest)),
     };
 
