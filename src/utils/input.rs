@@ -5,12 +5,21 @@ pub fn read_file(day: &str, test: bool) -> Vec<String> {
     read_lines(&inp_file(day, test))
 }
 
+pub fn read_raw(day: &str, test: bool) -> String {
+    let filename = inp_file(day, test);
+
+    read_to_string(&filename).unwrap_or_else(|_| panic!("Put something in {} first", filename))
+}
+
 pub fn read_lines(filename: &str) -> Vec<String> {
     let content =
         read_to_string(filename).unwrap_or_else(|_| panic!("Put something in {} first", filename));
 
-    content
-        .split('\n')
+    raw_to_lines(&content)
+}
+
+pub fn raw_to_lines(file: &str) -> Vec<String> {
+    file.split('\n')
         .map(|s| s.to_string())
         .filter(|s| !s.starts_with('#'))
         .collect()
