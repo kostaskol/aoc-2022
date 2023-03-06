@@ -1,6 +1,5 @@
 extern crate clap;
 use clap::{App, Arg};
-use chrono::Datelike;
 
 mod days;
 mod utils;
@@ -31,16 +30,8 @@ fn main() {
 
     let extra = matches.is_present("extra");
     let test = matches.is_present("test_input");
-    let date = chrono::Utc::now().date_naive();
 
-    let latest =
-        if date.month() == 12 {
-            vec![date.day(), 25].iter().min().unwrap().to_owned()
-        } else {
-            25
-        };
-    let latest_str = latest.to_string();
-    let problem = matches.value_of("problem_number").unwrap_or(&latest_str);
+    let problem = matches.value_of("problem_number").unwrap_or("12");
     let answer: String = match problem {
         "1" => day1::run(extra, test),
         "2" => day2::run(extra, test),
@@ -48,7 +39,8 @@ fn main() {
         "4" => day4::run(extra, test),
         "5" => day5::run(extra, test),
         "6" => day6::run(extra, test),
-        &_ => format!("Only know how to solve #{:?} for now :(", (1..=latest)),
+        "12" => day12::run(extra, test),
+        &_ => format!("Only know how to solve #{:?} for now :(", (1..=12)),
     };
 
     println!("{}", answer);

@@ -12,10 +12,10 @@ def main
 
   cont = File.read(fname)
 
-  grid, start, target = to_grid(cont)
+  grid, starts, target = to_grid(cont)
 
   if ARGV.any? { |a| a == '-e' }
-    solve2(grid, start)
+    solve2(grid, starts, target)
   else
     solve1(grid, start, target)
   end
@@ -25,7 +25,7 @@ def to_grid(cont)
   lines = cont.split("\n")
   dim_x = lines[0].size
   dim_y = lines.size
-  start = [0, 0]
+  starts = []
   target = [0, 0]
 
   grid = Array.new(dim_y) { |_| Array.new(dim_x) }
@@ -34,13 +34,13 @@ def to_grid(cont)
     row.split('').each_with_index do |val, x_indx|
       grid_val =
         case val
-        when 'S'
-          start = [y_indx, x_indx]
+        when 'S', 'a'
+          starts << [y_indx, x_indx]
           {
-            value: 10_000,
+            value: 0,
             start: true,
             parent: nil,
-            distance: 0
+            distance: nil
           }
         when 'E'
           target = [y_indx, x_indx]
@@ -62,7 +62,7 @@ def to_grid(cont)
     end
   end
 
-  [grid, start, target]
+  [grid, starts, target]
 end
 
 def possible_moves(grid, curr_row, curr_col)
@@ -99,19 +99,31 @@ def possible_moves(grid, curr_row, curr_col)
   end
 end
 
-def solve1(grid, start, target)
-  curr = start
-  to_visit = Containers::Heap.new(possible_moves(grid, curr[0], curr[1])) do |x, y|
-    (x <=> y) == -1
+def solve2(tpl_grid, starts, target)
+  min = 1_000_000
+  starts.each do |start|
+    grid = Marshal.load(Marshal.dump(tpl_grid))
+    grid[start[0]][start[1]][:distance] = 0
+
+    curr = start
+    to_visit = Containers::Heap.new(possible_moves(grid, curr[0], curr[1])) do |x, y|
+      (x <=> y) == -1
+    end
+
+    while (curr = to_visit.pop)
+      curr_val = grid[curr[0]][curr[1]]
+      # puts "Visiting #{curr_val}@#{curr}"
+      possible_moves(grid, curr[0], curr[1]).each do |move|
+        to_visit.push(move)
+      end
+    end
+
+    t_dist = grid[target[0]][target[1]][:distance] 
+    min = t_dist if t_dist && t_dist < min
+    # puts "start #{curr} -> #{t_dist}"
   end
 
-  while (curr = to_visit.pop)
-    curr_val = grid[curr[0]][curr[1]]
-    puts "Visiting #{curr_val}@#{curr}"
-    possible_moves(grid, curr[0], curr[1]).each do |move|
-      to_visit.push(move)
-    end
-  end
+  puts min
 
    #curr = [target[0], target[1]]
    #path = []
@@ -143,7 +155,6 @@ def solve1(grid, start, target)
    #  puts row.map { |v| v[:value] }.join(',')
    #end
 
-  puts "Target: #{grid[target[0]][target[1]][:distance]}"
 end
 
 main
